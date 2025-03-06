@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from . import crud, models, schemas, auth
 from .database import engine
-from .dependencies import get_db
+from .dependencies import get_db, get_current_user
 
 app = FastAPI()
 
@@ -14,7 +14,7 @@ models.Base.metadata.create_all(bind=engine)
 def create_book(
     book: schemas.BookCreate,
     db: Session = Depends(get_db),
-    current_user: str = Depends(auth.get_current_user)
+    current_user: str = Depends(get_current_user)
 ):
     return crud.create_book(db, book)
 
@@ -23,7 +23,7 @@ def read_books(
     skip: int = 0,
     limit: int = 10,
     db: Session = Depends(get_db),
-    current_user: str = Depends(auth.get_current_user)
+    current_user: str = Depends(get_current_user)
 ):
     return crud.get_books(db, skip=skip, limit=limit)
 
@@ -31,7 +31,7 @@ def read_books(
 def delete_book(
     book_id: int,
     db: Session = Depends(get_db),
-    current_user: str = Depends(auth.get_current_user)
+    current_user: str = Depends(get_current_user)
 ):
     db_book = crud.delete_book(db, book_id)
     if db_book is None:
@@ -118,6 +118,6 @@ def revoke_token(
 @app.get("/me", response_model=schemas.User)
 def read_users_me(
     db: Session = Depends(get_db),
-    current_user: str = Depends(auth.get_current_user)
+    current_user: str = Depends(get_current_user)
 ):
     return crud.get_user_by_username(db, username=current_user)
