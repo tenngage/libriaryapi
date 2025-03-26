@@ -18,6 +18,15 @@ def create_book(
 ):
     return crud.create_book(db, book)
 
+# TODO
+# @app.post("/books/reserve/{book_id}", response_model=schemas.Book)
+# def reserve_book(
+#     book: schemas.BookReserve,
+#     db: Session = Depends(get_db),
+#     current_user: str = Depends(get_current_user)
+# ):
+    # return crud.take_book(db, book, current_user)
+
 @app.get("/books/", response_model=list[schemas.Book])
 def read_books(
     skip: int = 0,

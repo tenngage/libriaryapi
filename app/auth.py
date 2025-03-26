@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
@@ -13,7 +13,7 @@ load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = "30"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -26,9 +26,9 @@ def get_password_hash(password):
 def create_access_token(data: dict, expires_data: timedelta = None):
     to_encode = data.copy()
     if expires_data:
-        expire = datetime.utcnow() + expires_data
+        expire = datetime.now(timezone.utc) + expires_data
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
     jti = str(uuid.uuid4())
     to_encode.update({"exp": expire, "jti": jti, "type": "access"})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
@@ -37,9 +37,9 @@ def create_access_token(data: dict, expires_data: timedelta = None):
 def create_refresh_token(data: dict, expires_data: timedelta = None):
     to_encode = data.copy()
     if expires_data:
-        expire = datetime.utcnow() + expires_data
+        expire = datetime.now(timezone.utc) + expires_data
     else:
-        expire = datetime.utcnow() + timedelta(days=7)
+        expire = datetime.now(timezone.utc) + timedelta(days=7)
     jti = str(uuid.uuid4())
     to_encode.update({"exp": expire, "jti": jti, "type": "refresh"})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
@@ -60,7 +60,6 @@ def get_jti(token: str):
         raise credentials_exception
     return jti
 
-
 def verify_refresh_token(token: str, db: Session):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -69,6 +68,12 @@ def verify_refresh_token(token: str, db: Session):
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        exp = payload.get("exp")
+        if exp is None:
+            raise credentials_exception
+        expire_time = datetime.fromtimestamp(exp, timezone.utc)
+        if datetime.now(timezone.utc) > expire_time:
+            raise credentials_exception
         jti = payload.get("jti")
         if jti:
             if db.query(models.RevokedToken).filter(models.RevokedToken.jti == jti).first():

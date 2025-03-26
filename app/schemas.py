@@ -13,6 +13,9 @@ class BookCreate(BookBase):
 class BookDelete(BookBase):
     pass
 
+class BookReserve(BookBase):
+    is_reserved: bool
+
 class Book(BookBase):
     id: int
 
